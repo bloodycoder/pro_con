@@ -48,16 +48,18 @@ int trans_char_int(char words[]){
 	}
 void producer(void *arg){
 		int sleep_time;
-		buffer_item item;
-		
+		buffer_item item;	
 		while(1){
 				sleep_time = rand()%2;
 				sleep(sleep_time);
+				if(play == 0){
+						return;
+					}
 				item = rand()%1000;
 				sem_wait(&empty);
 				pthread_mutex_lock(&mutex);
 				if(insert_item(item))
-					printf("error condition");
+					printf("error condition\n");
 				else
 					printf("producer produced %d in position %d\n",item,buffer_top+1);
 				pthread_mutex_unlock(&mutex);
@@ -73,11 +75,14 @@ void consumer(void *arg){
 		while(1){
 				sleep_time = rand()%2;
 				sleep(sleep_time);
+				if(play == 0){
+						return;
+					}
 				item = rand();
 				sem_wait(&full);
 				pthread_mutex_lock(&mutex);
 				if(remove_item(&item))
-					printf("error condition");
+					printf("error condition\n");
 				else
 					printf("consumer consumed %d in position %d\n",item,buffer_top+2);
 				pthread_mutex_unlock(&mutex);
@@ -90,7 +95,7 @@ void consumer(void *arg){
 	}
 int main(int argc,char *argv[]){
 		int slp,pro,con,i;
-		pthread_t tids[1000];
+		pthread_t tids[10000];
 		sem_init(&empty,0,5);
 		sem_init(&full,0,0);
 		pthread_mutex_init(&mutex,NULL);
@@ -101,7 +106,6 @@ int main(int argc,char *argv[]){
 		slp = trans_char_int(argv[1]);
 		pro = trans_char_int(argv[2]);
 		con = trans_char_int(argv[3]);
-		//pthread_create(&tids[0],NULL,producer,NULL);
 		for(i=1;i<=pro;i++){
 				pthread_create(&tids[i],NULL,producer,NULL);
 			}
@@ -111,7 +115,8 @@ int main(int argc,char *argv[]){
 		sleep(slp);
 		play = 0;
 		for(i=1;i<=pro+con;i++){
-				pthread_join(tids[i],NULL);
+				//pthread_kill(tids[i],SIGKILL);
+				pthread_cancel(tids[i]);
 			}
 		return 0;
 	}
